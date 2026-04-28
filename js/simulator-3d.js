@@ -17,11 +17,13 @@ class BittleSimulator3D {
   constructor(containerEl) {
     this.container = containerEl;
     this.statusLine = document.getElementById('status-line');
+    this.currentTheme = 'dark'; // dark / studio / light
 
     this.initScene();
     this.initBittle();
     this.initLights();
     this.initControls();
+    this.addThemeToggle();
     this.startRenderLoop();
     this.bindResize();
 
@@ -52,20 +54,107 @@ class BittleSimulator3D {
     this.renderer.shadowMap.enabled = true;
     this.container.appendChild(this.renderer.domElement);
 
-    // 地面（v0.4.1：略亮，與背景區分）
-    const ground = new THREE.Mesh(
+    // 地面（v0.4.1：略亮，與背景區分）— 存成 this.ground 給 setTheme 用
+    this.ground = new THREE.Mesh(
       new THREE.PlaneGeometry(1000, 1000),
       new THREE.MeshStandardMaterial({ color: 0x2a313e, roughness: 0.8 })
     );
-    ground.rotation.x = -Math.PI / 2;
-    ground.position.y = -100;
-    ground.receiveShadow = true;
-    this.scene.add(ground);
+    this.ground.rotation.x = -Math.PI / 2;
+    this.ground.position.y = -100;
+    this.ground.receiveShadow = true;
+    this.scene.add(this.ground);
 
-    // 地面 grid 輔助（v0.4.1：grid 線變亮）
-    const grid = new THREE.GridHelper(1000, 20, 0x6a7280, 0x4a5466);
-    grid.position.y = -99;
-    this.scene.add(grid);
+    // 地面 grid 輔助 — 存成 this.grid 給 setTheme 用（換主題時要重建）
+    this.grid = new THREE.GridHelper(1000, 20, 0x6a7280, 0x4a5466);
+    this.grid.position.y = -99;
+    this.scene.add(this.grid);
+  }
+
+  // ===== v0.4.2 主題系統 =====
+  themes = {
+    dark: {
+      label: '🌑 暗黑',
+      background: 0x4a5466,
+      ground: 0x2a313e,
+      gridMajor: 0x6a7280,
+      gridMinor: 0x4a5466,
+      ambient: 0xa0a0a0,
+    },
+    studio: {
+      label: '🌗 灰調',
+      background: 0x9ba5b4,
+      ground: 0x7a8290,
+      gridMajor: 0x5a626f,
+      gridMinor: 0x8a929d,
+      ambient: 0xc0c0c0,
+    },
+    light: {
+      label: '☀️ 明亮',
+      background: 0xe8ecef,
+      ground: 0xc0c8d0,
+      gridMajor: 0xa0a8b0,
+      gridMinor: 0xd0d8e0,
+      ambient: 0xffffff,
+    },
+  };
+
+  applyTheme(themeName) {
+    const t = this.themes[themeName];
+    if (!t) return;
+    this.currentTheme = themeName;
+
+    this.scene.background = new THREE.Color(t.background);
+    this.ground.material.color.setHex(t.ground);
+
+    // Grid 要重建（color 屬性不可動態改）
+    this.scene.remove(this.grid);
+    this.grid = new THREE.GridHelper(1000, 20, t.gridMajor, t.gridMinor);
+    this.grid.position.y = -99;
+    this.scene.add(this.grid);
+
+    // 環境光
+    if (this.ambientLight) this.ambientLight.color.setHex(t.ambient);
+
+    // 按鈕文字
+    if (this.themeBtn) this.themeBtn.textContent = t.label;
+  }
+
+  cycleTheme() {
+    const order = ['dark', 'studio', 'light'];
+    const idx = order.indexOf(this.currentTheme);
+    const next = order[(idx + 1) % order.length];
+    this.applyTheme(next);
+  }
+
+  addThemeToggle() {
+    // 確保 container 是 relative，浮動按鈕才能 absolute 定位
+    if (this.container.style.position !== 'absolute') {
+      this.container.style.position = 'relative';
+    }
+
+    const btn = document.createElement('button');
+    btn.textContent = '🌑 暗黑';
+    btn.title = '點擊循環切換 3 種地板/背景主題';
+    btn.style.cssText = `
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      padding: 5px 10px;
+      background: rgba(0, 0, 0, 0.6);
+      color: white;
+      border: 1px solid #5fa9e8;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-family: -apple-system, "Microsoft JhengHei", sans-serif;
+      z-index: 100;
+      transition: all 0.15s;
+    `;
+    btn.onmouseover = () => { btn.style.background = 'rgba(95, 169, 232, 0.9)'; };
+    btn.onmouseout = () => { btn.style.background = 'rgba(0, 0, 0, 0.6)'; };
+    btn.onclick = () => this.cycleTheme();
+    this.container.appendChild(btn);
+    this.themeBtn = btn;
   }
 
   initBittle() {
@@ -167,8 +256,9 @@ class BittleSimulator3D {
   initLights() {
     // v0.4.1：增強整體照明，避免暗部融成一片
 
-    // 環境光（從 0x666666 提升）
-    this.scene.add(new THREE.AmbientLight(0xa0a0a0));
+    // 環境光（從 0x666666 提升）— 存成 this.ambientLight 給 setTheme 用
+    this.ambientLight = new THREE.AmbientLight(0xa0a0a0);
+    this.scene.add(this.ambientLight);
 
     // 主方向光（含陰影，從 0.8 → 1.0）
     const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);

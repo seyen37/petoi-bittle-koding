@@ -13,6 +13,32 @@ related:
 
 ---
 
+## Round 12 — 2026-04-28 — v0.4.2 加 3D 主題切換（暗黑/灰調/明亮）
+
+### 變更
+- **`js/simulator-3d.js` 加主題系統**：
+  - 3 個 preset：`dark`（原配色）/ `studio`（中性灰）/ `light`（明亮）
+  - 每個 preset 含：背景、地面、grid、環境光 4 個顏色設定
+  - `applyTheme(name)` 動態套用
+  - `cycleTheme()` 循環切換
+- **浮動「🌑 暗黑」按鈕**：自動 inject 到 3D canvas 右上角，點擊循環 3 主題
+- 點擊按鈕後文字變化：`🌑 暗黑` → `🌗 灰調` → `☀️ 明亮` → 循環
+
+### 為什麼
+用戶反饋：地板太深色不舒服。提供 3 種選項讓不同偏好都滿意。
+
+### Commit message 建議
+```
+feat(3d): add cycling theme toggle (dark / studio / light) for 3D simulator floor
+```
+
+### 下一步建議
+1. push
+2. Pages 更新後切到 3D，右上角會多一個「🌑 暗黑」按鈕
+3. 連點 3 次循環 3 主題，挑喜歡的
+
+---
+
 ## Round 11 — 2026-04-28 — v0.4.1 配色微調（提高 3D 模擬器對比度）
 
 ### 變更
