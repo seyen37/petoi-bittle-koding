@@ -13,7 +13,70 @@ related:
 
 ---
 
-## Round 5 — 2026-04-27 — 雙 GitHub 帳號 SSH 設置指引
+## Round 7 — 2026-04-28 — 智財保護強化（LICENSE 真名 + 備份改 Private）
+
+### 變更
+- **LICENSE 改用真實姓名**：從 `Copyright (c) 2026 seyen37` 改為 `Copyright (c) 2026 許士彥 (Hsu Shih-Yen) (https://github.com/seyen37)`
+- **備份 repo seyenbot/petoi-bittle-koding 改為 Private**（用戶在 GitHub UI 操作）
+
+### 為什麼這樣改
+1. **真名強化法律舉證**：著作權糾紛時不需額外證明「seyen37 是您本人」
+2. **GitHub 連結方便識別**：保留化名作為連結 anchor，不影響識別性
+3. **備份 Private 避免混淆**：別人不會誤抓備份的舊版本，主 repo 仍維持 Public 對外
+
+### Commit message 建議
+```
+docs: strengthen IP protection — real name in LICENSE
+```
+
+### 下一步（用戶要做）
+1. 確認 LICENSE 變動：`type LICENSE` 看新內容
+2. push 到兩邊 GitHub
+3. 確認 https://github.com/seyenbot/petoi-bittle-koding 已是 Private（訪問會 404 表示成功）
+
+### 沒新增 ADR 的理由
+本次屬於「執行 ADR-007 的細節調整」，不是新架構決策。LICENSE 改名 + 備份 Private 都符合 ADR-007「保有智財 + 開源分享」的原則。
+
+---
+
+## Round 6 — 2026-04-28 — 雙 GitHub 帳號 SSH 設置 + 實際上傳成功
+
+### 完成事項
+- ✅ 用戶照 dual-github-setup.md Phase 1-2 生成兩組 SSH key（seyen37 + seyenbot）
+- ✅ 兩個公鑰分別上傳到對應的 GitHub 帳號 settings/keys
+- ✅ `~/.ssh/config` 設定兩個 host alias
+- ✅ `ssh -T git@github.com-seyen37` 與 `git@github.com-seyenbot` 都成功（"Hi seyen37/seyenbot! ..."）
+- ✅ 在兩個 GitHub 帳號各建空 repo `petoi-bittle-koding`
+- ✅ 本地 `git init` + `git remote add origin` + `git remote add backup`
+- ✅ `git push -u origin main` 成功（27 個檔案、50.11 KiB → seyen37/petoi-bittle-koding）
+- ✅ `git push -u backup main` 成功（同樣 27 個檔案 → seyenbot/petoi-bittle-koding）
+
+### 上線網址（待啟用 Pages 後可訪問）
+- 主：https://github.com/seyen37/petoi-bittle-koding
+- 備份：https://github.com/seyenbot/petoi-bittle-koding
+- Pages（待啟用）：https://seyen37.github.io/petoi-bittle-koding/
+
+### 下一步（用戶要做）
+1. 在 seyen37 repo 啟用 GitHub Pages（Settings → Pages → main / root → Save）
+2. 等 1-3 分鐘訪問 https://seyen37.github.io/petoi-bittle-koding/
+3. （可選）設定 Phase 7「一鍵 push 兩邊」省事
+
+### Commit message 建議（這次的 WORKLOG 變動本身也要 commit）
+```
+docs: log Round 6 — successful dual GitHub setup and push
+```
+
+### 學到的經驗
+- 用戶一次性把 SSH 設置走完，沒卡關
+- `~/.ssh/config` 用 host alias 設計很乾淨，兩帳號完全分離
+- Phase 7「一鍵 push」是良好的 ergonomics 改善，建議設定
+
+---
+
+## Round 5 — 2026-04-27 — 雙 GitHub 帳號 SSH 設置指引（文件）
+
+### 變更
+- **新增 docs/dual-github-setup.md**：完整 SSH key 設置 + 多 remote 配置指引
 
 ### 變更
 - **新增 docs/dual-github-setup.md**：完整 SSH key 設置 + 多 remote 配置指引
