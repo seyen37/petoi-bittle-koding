@@ -1,9 +1,15 @@
 /* ==========================================================
-   Bittle 自訂積木定義
-   參考主筆記附錄 D 的 ASCII token + skill 縮寫對照
+   bittle-blocks.js — Bittle 自訂積木定義
+   ----------------------------------------------------------
+   v0.2 重構：除了「進入點」與「Servo / 聲音」少數固定積木，
+   所有 50+ 動作積木由 BITTLE_SKILLS array loop 自動生成。
+
+   詳見：
+   - js/bittle-skills-data.js（單一資料源）
+   - DECISIONS.md ADR-008（metadata-driven 設計理由）
    ========================================================== */
 
-// === 進入點（Hat Block）：仿 NUWA / Scratch 的「開始」積木 ===
+// ============== 進入點（hat）與重置 ==============
 
 Blockly.Blocks['bittle_start'] = {
   init: function () {
@@ -20,74 +26,11 @@ Blockly.Blocks['bittle_reset'] = {
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(45);
-    this.setTooltip('讓 Bittle 回到 kbalance 站穩姿勢，腿復位');
+    this.setTooltip('讓 Bittle 回到 kbalance 站穩姿勢');
   },
 };
 
-// === 動作類（Action）：對應 OpenCat 內建 56 skills 的 6 個 MVP 子集 ===
-
-Blockly.Blocks['bittle_walk_forward'] = {
-  init: function () {
-    this.appendDummyInput().appendField('🚶 走向前');
-    this.setPreviousStatement(true, null);
-    this.setNextStatement(true, null);
-    this.setColour(290);
-    this.setTooltip('執行 walk forward (kwkF) skill');
-    this.setHelpUrl('https://github.com/PetoiCamp/OpenCat-Quadruped-Robot');
-  },
-};
-
-Blockly.Blocks['bittle_walk_backward'] = {
-  init: function () {
-    this.appendDummyInput().appendField('🔙 倒退');
-    this.setPreviousStatement(true, null);
-    this.setNextStatement(true, null);
-    this.setColour(290);
-    this.setTooltip('執行 walk backward (kbk) skill');
-  },
-};
-
-Blockly.Blocks['bittle_sit'] = {
-  init: function () {
-    this.appendDummyInput().appendField('🪑 坐下');
-    this.setPreviousStatement(true, null);
-    this.setNextStatement(true, null);
-    this.setColour(290);
-    this.setTooltip('執行 sit (ksit) skill');
-  },
-};
-
-Blockly.Blocks['bittle_balance'] = {
-  init: function () {
-    this.appendDummyInput().appendField('🧍 站穩');
-    this.setPreviousStatement(true, null);
-    this.setNextStatement(true, null);
-    this.setColour(290);
-    this.setTooltip('執行 balance (kbalance) skill');
-  },
-};
-
-Blockly.Blocks['bittle_rest'] = {
-  init: function () {
-    this.appendDummyInput().appendField('💤 休息');
-    this.setPreviousStatement(true, null);
-    this.setNextStatement(true, null);
-    this.setColour(290);
-    this.setTooltip('執行 rest (krest) skill');
-  },
-};
-
-Blockly.Blocks['bittle_hi'] = {
-  init: function () {
-    this.appendDummyInput().appendField('👋 打招呼');
-    this.setPreviousStatement(true, null);
-    this.setNextStatement(true, null);
-    this.setColour(290);
-    this.setTooltip('執行 hi (khi) skill');
-  },
-};
-
-// === Servo 控制 ===
+// ============== Servo 控制（手寫，因有 input slot）==============
 
 Blockly.Blocks['bittle_servo_move'] = {
   init: function () {
@@ -138,7 +81,7 @@ Blockly.Blocks['bittle_servo_move_pair'] = {
   },
 };
 
-// === 聲音 / 時間 ===
+// ============== 聲音 / 時間 ==============
 
 Blockly.Blocks['bittle_beep'] = {
   init: function () {
@@ -166,3 +109,26 @@ Blockly.Blocks['bittle_wait'] = {
     this.setTooltip('暫停指定秒數後繼續執行下一個積木');
   },
 };
+
+// ============== 動作積木（loop 自動生成 50+ 個）==============
+
+const SKILL_COLOUR = {
+  gait: 290,    // 紫色
+  posture: 230, // 藍紫
+  show: 320,    // 粉紫
+};
+
+BittleApp.BITTLE_SKILLS.forEach((skill) => {
+  Blockly.Blocks['bittle_' + skill.id] = {
+    init: function () {
+      this.appendDummyInput().appendField(skill.emoji + ' ' + skill.name);
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setColour(SKILL_COLOUR[skill.category] || 290);
+      this.setTooltip(skill.tooltip || skill.ascii);
+      this.setHelpUrl('https://github.com/PetoiCamp/OpenCat-Quadruped-Robot');
+    },
+  };
+});
+
+console.log(`[BittleApp] Registered ${BittleApp.BITTLE_SKILLS.length} action blocks (gait/posture/show)`);

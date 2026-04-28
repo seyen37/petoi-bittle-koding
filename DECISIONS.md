@@ -318,6 +318,68 @@ class IRobot {
 
 ---
 
+## ADR-008：v0.2 動作積木採 metadata-driven 生成（vs 手寫 boilerplate）
+
+**Status**: Accepted（2026-04-28）
+**Context**：v0.1 手寫 6 個動作積木已寫了 ~250 行 boilerplate（每個積木要寫 Block.Blocks definition + Generator + 加到 toolbox）。v0.2 要 50 個積木，照這寫法會變 2000+ 行。
+
+### Options
+
+| 方案 | 優點 | 缺點 |
+|---|---|---|
+| **Metadata-driven（一個 array 定義全部，loop 生成）** | DRY、新增 skill 改 1 行、tooltip/animation/category 統一在 metadata | 失去「每個積木細節都能客製」的彈性 |
+| 手寫每個積木 | 最大彈性 | 2000+ 行 boilerplate、新增 skill 要改 5 個地方 |
+| Code generator（從 array 自動產生 .js 檔，build pipeline）| 兩全其美 | 引入 build pipeline 違背 ADR-002（純前端 + 零 build） |
+
+### Decision
+
+選 **Metadata-driven**（純執行期，不引入 build pipeline）。
+
+### Implementation
+
+新檔 `js/bittle-skills-data.js` 是單一資料源（SSOT），含 `BITTLE_SKILLS` array：
+
+```javascript
+BittleApp.BITTLE_SKILLS = [
+  { id: 'walk_forward', name: '走向前', emoji: '🚶',
+    ascii: 'kwkF', category: 'gait', anim: 'walk',
+    tooltip: 'walk forward — 對角腿輪流擺動前進' },
+  ...
+];
+```
+
+`bittle-blocks.js` loop 自動 register：
+```javascript
+BittleApp.BITTLE_SKILLS.forEach((skill) => {
+  Blockly.Blocks['bittle_' + skill.id] = { init: ... };
+});
+```
+
+`bittle-generators.js`、`blockly-config.js` toolbox、`simulator-svg.js` skillAnimMap 都吃同一份 metadata。
+
+### Rationale
+
+1. **51 個積木的 boilerplate 不可維護** — 加新 skill 不能要改 5 個檔
+2. **保留純前端**（與 ADR-002 一致）
+3. **效能不變** — Blockly.Blocks 註冊本來就是執行期動作
+4. **積木細節彈性**：只有少數需要 input slot 的積木（servo / beep / wait）保留手寫
+
+### Consequences
+
+- ✅ 加 skill 只改 `bittle-skills-data.js` 一個檔
+- ✅ tooltip / animation / category 集中管理
+- ✅ codebase 從 ~600 行 boilerplate 縮為 ~200 行
+- ❌ 失去「每個積木視覺超客製」的能力（接受 — 對 50+ 個 skill 來說沒人會想為每個寫獨特 UI）
+- ⚠️ Animation library 限 13 種，部分 skill 對應不夠精準（如 backflip 對應 jump）— 接受，視覺只是示意
+
+### 對未來機器人擴充的影響
+
+ADR-006 多機器人架構與本決策**完美契合**：每個 robot 各自有自己的 `<robot>-skills-data.js`，loop 機制可重用。
+
+雙足 / microbit / Go1 都可採同樣 metadata-driven 模式。
+
+---
+
 ## 未來新增 ADR 的時機
 
 當您（或我）做以下決策時，請新增 ADR：

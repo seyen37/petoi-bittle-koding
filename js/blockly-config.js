@@ -1,11 +1,25 @@
 /* ==========================================================
    Blockly 設定 — toolbox 結構與選項
+   v0.2：toolbox 動作分類拆成 步態 / 姿勢 / 表演動作 三個 sub-category
    ========================================================== */
 
 window.BittleApp = window.BittleApp || {};
 
-// Toolbox：左側積木分類選單
-BittleApp.toolboxXml = `
+// 由 BITTLE_SKILLS metadata 自動產生 category XML 片段
+function buildSkillCategoryXml(categoryName, skills, colour) {
+  const blocks = skills.map((s) => `    <block type="bittle_${s.id}"></block>`).join('\n');
+  return `  <category name="${categoryName}" colour="${colour}">\n${blocks}\n  </category>`;
+}
+
+// ⚠️ Toolbox XML 在 BITTLE_SKILLS 載入後才能組裝
+// 所以 BittleApp.toolboxXml 用 getter 延遲求值
+Object.defineProperty(BittleApp, 'toolboxXml', {
+  get: function () {
+    const gait    = BittleApp.SKILLS_BY_CATEGORY?.gait    || [];
+    const posture = BittleApp.SKILLS_BY_CATEGORY?.posture || [];
+    const show    = BittleApp.SKILLS_BY_CATEGORY?.show    || [];
+
+    return `
 <xml id="toolbox" style="display: none">
 
   <category name="🟢 開始與重置" colour="45">
@@ -13,14 +27,9 @@ BittleApp.toolboxXml = `
     <block type="bittle_reset"></block>
   </category>
 
-  <category name="🐕 動作（Action）" colour="290">
-    <block type="bittle_walk_forward"></block>
-    <block type="bittle_walk_backward"></block>
-    <block type="bittle_sit"></block>
-    <block type="bittle_balance"></block>
-    <block type="bittle_rest"></block>
-    <block type="bittle_hi"></block>
-  </category>
+${buildSkillCategoryXml(`🚶 步態（${gait.length} 個）`,    gait,    290)}
+${buildSkillCategoryXml(`🧍 姿勢（${posture.length} 個）`, posture, 230)}
+${buildSkillCategoryXml(`🎭 表演動作（${show.length} 個）`, show,    320)}
 
   <category name="⚙️ Servo 控制" colour="200">
     <block type="bittle_servo_move">
@@ -77,19 +86,21 @@ BittleApp.toolboxXml = `
   <sep></sep>
 
   <category name="🚧 擴充（規劃中）" colour="20">
-    <label text="這些功能在 v0.2+ 開放：" web-class="myLabelStyle"></label>
+    <label text="這些功能在 v0.3+ 開放："></label>
     <label text="• 感測器事件積木（lifted/dropped/IR）"></label>
     <label text="• OpenAI 串接"></label>
     <label text="• Teachable Machine"></label>
     <label text="• IoT (MQTT)"></label>
+    <label text="• 多機器人切換（雙足/Go1/microbit）"></label>
   </category>
 
 </xml>
-`;
+    `;
+  },
+});
 
-// Blockly 注入時的選項
 BittleApp.blocklyOptions = {
-  toolbox: BittleApp.toolboxXml,
+  get toolbox() { return BittleApp.toolboxXml; },
   trashcan: true,
   scrollbars: true,
   sounds: false,
@@ -107,10 +118,5 @@ BittleApp.blocklyOptions = {
     colour: '#2c313c',
     snap: true,
   },
-  theme: Blockly.Themes.Classic, // 後續可改 dark theme
+  theme: Blockly.Themes.Classic,
 };
-
-// 切換 Blockly 介面到繁體中文（如果語言檔已載入）
-if (typeof Blockly !== 'undefined' && Blockly.Msg) {
-  // zh-hant 訊息已透過 <script src="msg/zh-hant.js"> 載入
-}

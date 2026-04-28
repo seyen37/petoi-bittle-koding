@@ -93,10 +93,13 @@
     </aside>
   </main>
 
-  <!-- 自訂 JS（依序載入：先設定，再積木，再生成器，再模組，最後整合）-->
+  <!-- 自訂 JS（依序載入：先 metadata，再設定，再積木，再生成器，再模組，最後整合）-->
+  <!-- v0.2：bittle-skills-data.js 必須在 blocks/generators 之前載入（提供 BITTLE_SKILLS array）-->
+  <script src="js/bittle-skills-data.js"></script>
   <script src="js/blockly-config.js"></script>
   <script src="js/bittle-blocks.js"></script>
   <script src="js/bittle-generators.js"></script>
+  <script src="js/robots/IRobot.js"></script>
   <script src="js/simulator-svg.js"></script>
   <script src="js/serial.js"></script>
   <script src="js/main.js"></script>

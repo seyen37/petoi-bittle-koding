@@ -1,6 +1,7 @@
 /* ==========================================================
    SVG 模擬器 — 把 ASCII 指令翻譯成 SVG 動畫
-   MVP：簡單腿部與身體動畫，呈現 walk/sit/balance/rest 等
+   v0.2：擴充 animation library 到 13 種，對應 v0.2 的 50+ skills
+   未實作的指令會跑 generic 'shake' fallback
    ========================================================== */
 
 window.BittleApp = window.BittleApp || {};
@@ -17,52 +18,51 @@ class BittleSimulator {
     this.body = this.svg.querySelector('#body');
     this.head = this.svg.querySelector('#head');
     this.statusLine = document.getElementById('status-line');
+
+    // 建立「ASCII → animation」對照表（從 BITTLE_SKILLS metadata 生成）
+    this.skillAnimMap = {};
+    if (BittleApp.BITTLE_SKILLS) {
+      BittleApp.BITTLE_SKILLS.forEach((s) => {
+        this.skillAnimMap[s.ascii] = s.anim;
+      });
+    }
   }
 
   setStatus(text) {
     if (this.statusLine) this.statusLine.textContent = '狀態：' + text;
   }
 
-  // 設定腿部旋轉（degrees）
-  // 因為 SVG 用「外層 g translate + 內層 g 旋轉」結構，
-  // 內層 leg-XX 的 transform 只負責 rotate，旋轉中心 (0,0) 自然在腿頂
   setLeg(legId, angle) {
     const leg = this.legs[legId];
     if (!leg) return;
     leg.setAttribute('transform', `rotate(${angle})`);
   }
 
-  // 重置所有腿到 0 度
   resetLegs() {
     ['LF', 'RF', 'LB', 'RB'].forEach((id) => this.setLeg(id, 0));
   }
 
-  // 接收一個指令字串（ASCII），對應到動畫
+  resetHead() {
+    if (this.head) this.head.setAttribute('transform', 'rotate(0)');
+  }
+
+  // 主入口
   async executeSkill(asciiCommand) {
     this.setStatus('執行 ' + asciiCommand);
 
-    // skill 指令（k 開頭）
-    if (asciiCommand.startsWith('kwk') || asciiCommand === 'kwkF') {
-      await this.animateWalk(4); // 走 4 步循環
-    } else if (asciiCommand === 'kbk') {
-      await this.animateWalk(4, true); // 倒退
-    } else if (asciiCommand === 'ksit') {
-      await this.animateSit();
-    } else if (asciiCommand === 'kbalance') {
-      await this.animateBalance();
-    } else if (asciiCommand === 'krest') {
-      await this.animateRest();
-    } else if (asciiCommand === 'khi') {
-      await this.animateHi();
+    // 1. 從 metadata 對照查 animation
+    const animName = this.skillAnimMap[asciiCommand];
+    if (animName && this.animations[animName]) {
+      await this.animations[animName].call(this);
     }
-    // servo 指令（m 開頭）
+    // 2. servo 直控指令（m 開頭）
     else if (asciiCommand.startsWith('m ')) {
       const parts = asciiCommand.split(/\s+/);
       const index = parseInt(parts[1], 10);
       const angle = parseInt(parts[2], 10);
       await this.animateServo(index, angle);
     }
-    // 多 servo 指令（i 開頭）
+    // 3. 多 servo 指令（i 開頭）
     else if (asciiCommand.startsWith('i ')) {
       const parts = asciiCommand.split(/\s+/);
       for (let p = 1; p < parts.length; p += 2) {
@@ -72,97 +72,160 @@ class BittleSimulator {
       }
       await this.sleep(500);
     }
-    // 蜂鳴
+    // 4. 蜂鳴（b 開頭）
     else if (asciiCommand.startsWith('b ')) {
-      await this.animateBeep();
-    } else {
-      this.setStatus('未實作的指令: ' + asciiCommand);
-      await this.sleep(300);
+      await this.animations.beep.call(this);
+    }
+    // 5. fallback：未知指令跑 generic shake
+    else {
+      this.setStatus('未對應的指令: ' + asciiCommand + '（fallback shake）');
+      await this.animations.shake.call(this);
     }
 
     this.setStatus('就緒');
   }
 
-  // ===== 動畫實作 =====
+  // ===== Animation Library（13 種 + 1 個 servo 直控）=====
+  animations = {
+    walk: async function () {
+      for (let i = 0; i < 4; i++) {
+        this.setLeg('LF', 30); this.setLeg('RB', 30);
+        this.setLeg('RF', -30); this.setLeg('LB', -30);
+        await this.sleep(280);
+        this.setLeg('LF', -30); this.setLeg('RB', -30);
+        this.setLeg('RF', 30); this.setLeg('LB', 30);
+        await this.sleep(280);
+      }
+      this.resetLegs();
+    },
 
-  async animateWalk(steps, reverse = false) {
-    const dir = reverse ? -1 : 1;
-    for (let i = 0; i < steps; i++) {
-      // 對角腿同時抬起（trot 步態）
-      this.setLeg('LF', 30 * dir);
-      this.setLeg('RB', 30 * dir);
-      this.setLeg('RF', -30 * dir);
-      this.setLeg('LB', -30 * dir);
-      await this.sleep(300);
+    walkReverse: async function () {
+      for (let i = 0; i < 4; i++) {
+        this.setLeg('LF', -30); this.setLeg('RB', -30);
+        this.setLeg('RF', 30); this.setLeg('LB', 30);
+        await this.sleep(280);
+        this.setLeg('LF', 30); this.setLeg('RB', 30);
+        this.setLeg('RF', -30); this.setLeg('LB', -30);
+        await this.sleep(280);
+      }
+      this.resetLegs();
+    },
 
-      this.setLeg('LF', -30 * dir);
-      this.setLeg('RB', -30 * dir);
-      this.setLeg('RF', 30 * dir);
-      this.setLeg('LB', 30 * dir);
-      await this.sleep(300);
-    }
-    this.resetLegs();
-  }
+    sit: async function () {
+      this.setLeg('LF', -20); this.setLeg('RF', -20);
+      this.setLeg('LB', 60);  this.setLeg('RB', 60);
+      await this.sleep(800);
+    },
 
-  async animateSit() {
-    // 坐姿：前腿前伸（小角度），後腿大彎收起（用 leg 角度差表現）
-    this.setLeg('LF', -20);
-    this.setLeg('RF', -20);
-    this.setLeg('LB', 60);
-    this.setLeg('RB', 60);
-    await this.sleep(800);
-  }
+    rest: async function () {
+      this.setLeg('LF', 60);  this.setLeg('RF', 60);
+      this.setLeg('LB', -60); this.setLeg('RB', -60);
+      await this.sleep(800);
+    },
 
-  async animateBalance() {
-    // 站穩：所有腿歸零（直立）
-    this.resetLegs();
-    await this.sleep(400);
-  }
+    balance: async function () {
+      this.resetLegs();
+      this.resetHead();
+      await this.sleep(400);
+    },
 
-  async animateRest() {
-    // 休息趴下：所有腿向外散開
-    this.setLeg('LF', 60);
-    this.setLeg('RF', 60);
-    this.setLeg('LB', -60);
-    this.setLeg('RB', -60);
-    await this.sleep(800);
-  }
+    hi: async function () {
+      this.resetLegs();
+      for (let i = 0; i < 3; i++) {
+        this.setLeg('RF', -60);
+        await this.sleep(220);
+        this.setLeg('RF', -90);
+        await this.sleep(220);
+      }
+      this.resetLegs();
+    },
 
-  async animateHi() {
-    // 揮 RF（前右腳）
-    this.resetLegs();
-    for (let i = 0; i < 3; i++) {
-      this.setLeg('RF', -60);
+    jump: async function () {
+      // 4 腿一起彎 → 一起伸（上下蹲跳示意）
+      ['LF', 'RF', 'LB', 'RB'].forEach((id) => this.setLeg(id, 50));
       await this.sleep(250);
-      this.setLeg('RF', -90);
+      ['LF', 'RF', 'LB', 'RB'].forEach((id) => this.setLeg(id, -30));
       await this.sleep(250);
-    }
-    this.resetLegs();
-  }
+      this.resetLegs();
+    },
+
+    kick: async function () {
+      // RF 大幅前踢
+      this.setLeg('RF', -80);
+      await this.sleep(300);
+      this.setLeg('RF', 60);
+      await this.sleep(300);
+      this.resetLegs();
+    },
+
+    pushUp: async function () {
+      // 4 腿同時彎曲再展開，重複 2 次
+      for (let i = 0; i < 2; i++) {
+        ['LF', 'RF', 'LB', 'RB'].forEach((id) => this.setLeg(id, 60));
+        await this.sleep(300);
+        this.resetLegs();
+        await this.sleep(300);
+      }
+    },
+
+    shake: async function () {
+      // generic 短抖動 — 4 腿同時左右擺一下
+      for (let i = 0; i < 2; i++) {
+        ['LF', 'RF', 'LB', 'RB'].forEach((id) => this.setLeg(id, 15));
+        await this.sleep(180);
+        ['LF', 'RF', 'LB', 'RB'].forEach((id) => this.setLeg(id, -15));
+        await this.sleep(180);
+      }
+      this.resetLegs();
+    },
+
+    nod: async function () {
+      // 頭部上下擺
+      for (let i = 0; i < 3; i++) {
+        this.head.setAttribute('transform', 'rotate(20)');
+        await this.sleep(200);
+        this.head.setAttribute('transform', 'rotate(-20)');
+        await this.sleep(200);
+      }
+      this.resetHead();
+    },
+
+    stretch: async function () {
+      // 4 腿向外伸長
+      this.setLeg('LF', -45); this.setLeg('RF', -45);
+      this.setLeg('LB', 45);  this.setLeg('RB', 45);
+      await this.sleep(800);
+      this.resetLegs();
+    },
+
+    buttUp: async function () {
+      // 後腿低、前腿高（屁股翹）
+      this.setLeg('LF', 60);  this.setLeg('RF', 60);
+      this.setLeg('LB', -45); this.setLeg('RB', -45);
+      await this.sleep(800);
+    },
+
+    beep: async function () {
+      // 視覺：頭部閃爍
+      this.head.style.opacity = '0.5';
+      await this.sleep(100);
+      this.head.style.opacity = '1';
+      await this.sleep(100);
+    },
+  };
 
   async animateServo(index, angle, blocking = true) {
-    // 單一 servo 移動
     if (index === 0) {
-      // head pan — head 內層 group 只設 rotate（外層 group 已 translate 到頭部位置）
+      // head pan
       this.head.setAttribute('transform', `rotate(${angle})`);
     } else if ([8, 9, 10, 11].includes(index)) {
-      // shoulder pitch
       const map = { 8: 'LF', 9: 'RF', 10: 'RB', 11: 'LB' };
       this.setLeg(map[index], angle);
     } else if ([12, 13, 14, 15].includes(index)) {
-      // knee（暫時也轉腿，未來可細分）
       const map = { 12: 'LF', 13: 'RF', 14: 'RB', 15: 'LB' };
       this.setLeg(map[index], angle / 2);
     }
     if (blocking) await this.sleep(400);
-  }
-
-  async animateBeep() {
-    // 視覺效果：頭部閃爍
-    this.head.style.opacity = '0.5';
-    await this.sleep(100);
-    this.head.style.opacity = '1';
-    await this.sleep(100);
   }
 
   sleep(ms) {

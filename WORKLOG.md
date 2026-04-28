@@ -13,6 +13,50 @@ related:
 
 ---
 
+## Round 9 — 2026-04-28 — v0.2 動作積木擴充：6 → 51 個（metadata-driven 重構）
+
+### 變更
+- **新增 `js/bittle-skills-data.js`**：BITTLE_SKILLS 單一資料源，51 個 skill metadata（13 步態 + 8 姿勢 + 30 表演動作）
+- **重構 `js/bittle-blocks.js`**：loop 自動 register 50+ 個 Blockly.Blocks，只保留 hat/reset/servo/beep/wait 手寫
+- **重構 `js/bittle-generators.js`**：loop 自動 register generators
+- **重組 `js/blockly-config.js` toolbox**：動作分類拆成「步態 / 姿勢 / 表演動作」3 個 sub-category，每個顯示積木數量
+- **擴充 `js/simulator-svg.js` animation library**：從 5 種擴到 13 種（walk/walkReverse/sit/rest/balance/hi/jump/kick/pushUp/shake/nod/stretch/buttUp）+ generic shake fallback
+- **更新 `index.html` 載入順序**：bittle-skills-data.js 必須在 blocks/generators 之前
+- **新增 ADR-008** 紀錄 metadata-driven 設計決策
+
+### 新增的 51 個 skill 摘要
+| 類別 | 數量 | 範例 |
+|---|---|---|
+| 🚶 步態 (gait) | 13 | walk_forward, trot, crawl, bound, jump, vault, push_walk, walk_left/right, ... |
+| 🧍 姿勢 (posture) | 8 | balance, sit, rest, up, zero, calib, stretch, butt_up |
+| 🎭 表演動作 (show) | 30 | hi, handshake, hug, kick, push_up, scratch, sniff, roll, moonwalk, nod, sleep, ... |
+
+### 為什麼這樣做（架構洞察）
+v0.2 後仍會持續加 skill，加上未來雙足/Go1/microbit 各自會有 50+ 個動作。如果繼續手寫 boilerplate 就會崩潰。Metadata-driven 是**為多機器人擴充鋪路的關鍵改造**。
+
+### Commit message 建議
+```
+feat: v0.2 expand to 51 action blocks via metadata-driven refactor
+
+- Add bittle-skills-data.js as single source of truth (SSOT)
+- Refactor blocks.js / generators.js to loop-generate from metadata
+- Reorganize toolbox into gait / posture / show sub-categories
+- Expand simulator animation library from 5 to 13 types
+- Add ADR-008 documenting metadata-driven design decision
+```
+
+### 下一步建議
+1. 重整 GitHub Pages（push 完等 1-3 分鐘）→ 訪問 https://seyen37.github.io/petoi-bittle-koding/
+2. 驗證 toolbox 顯示「步態(13)」「姿勢(8)」「表演動作(30)」三個分類
+3. 測試新積木（如「跳躍」「踢腿」「點頭」）的 SVG 動畫
+4. （可選）下一個 round 開始 v0.2 事件積木（lifted/dropped/...）
+
+### 學到的經驗
+- Blockly toolbox XML 用 getter 延遲求值：因 BITTLE_SKILLS 在另一個檔，要等載入後才能組裝 XML
+- `BittleApp.BITTLE_SKILLS.forEach` 這個 idiom 很乾淨，新增 skill 只改 metadata 就生效
+
+---
+
 ## 🎉 Round 8 — 2026-04-28 — GitHub Pages 正式上線
 
 ### 里程碑
