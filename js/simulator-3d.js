@@ -373,24 +373,33 @@ class BittleSimulator3D {
     if (this.statusLine) this.statusLine.textContent = '狀態（3D）：' + text;
   }
 
-  // v0.4.6: 新增 4-bar linkage 連動模擬
-  // 預設 kneeRatio = -0.45：當 shoulder 旋轉 +50°，knee 自動 -22.5°（4-bar 連動）
-  // 這模擬實機 4-bar + 彈簧腿的「shoulder 動 → knee 跟著反向動」自然行為
-  // 特殊動作可手動 override（如 sit 用顯式 kneeDeg 而非比例）
+  // v0.4.7 ★ 重要修正：rotation.x → rotation.z
+  // 原因：在 Three.js 預設座標系（Y up, head 在 +X），
+  //   - rotation.x 是繞 X 軸（前後軸）→ 腿**側向左右晃**（用戶截圖看到的「擺動方向錯」）
+  //   - rotation.z 是繞 Z 軸（左右軸）→ 腿**前後擺動**（實機 walk 的真實動作）
+  // 此版全面改用 rotation.z，walk / sit / rest / hi 等所有動作的腿擺動都會修正方向。
   setLeg(id, shoulderDeg, kneeOverride = null) {
     const leg = this.legs[id];
     if (!leg) return;
-    leg.group.rotation.x = THREE.MathUtils.degToRad(shoulderDeg);
+    leg.group.rotation.z = THREE.MathUtils.degToRad(shoulderDeg);
     // 4-bar 自動連動（除非顯式指定 kneeOverride）
     const kneeDeg = (kneeOverride !== null) ? kneeOverride : shoulderDeg * -0.45;
-    leg.knee.rotation.x = THREE.MathUtils.degToRad(kneeDeg);
+    leg.knee.rotation.z = THREE.MathUtils.degToRad(kneeDeg);
     // 彈簧視覺反饋：絕對角度愈大，彈簧視覺微微縮（暗示張力變化）
     const stress = Math.min(Math.abs(shoulderDeg) / 60, 1);
-    leg.spring.scale.y = 1 - stress * 0.2;
+    if (leg.spring) leg.spring.scale.y = 1 - stress * 0.2;
   }
 
   resetLegs() {
-    Object.keys(this.legs).forEach((id) => this.setLeg(id, 0, 0));
+    Object.keys(this.legs).forEach((id) => {
+      const leg = this.legs[id];
+      if (leg) {
+        // 重置兩個 axis 避免殘留
+        leg.group.rotation.set(0, 0, 0);
+        leg.knee.rotation.set(0, 0, 0);
+        if (leg.spring) leg.spring.scale.y = 1;
+      }
+    });
   }
 
   resetHead() {
@@ -613,15 +622,17 @@ class BittleSimulator3D {
 
   async animateServo(index, angle, blocking = true) {
     if (index === 0) {
-      // head pan
+      // head pan（仍用 rotation.y — 頭轉動是繞垂直軸，這個 axis 對的）
       this.head.rotation.y = THREE.MathUtils.degToRad(angle);
     } else if ([8, 9, 10, 11].includes(index)) {
+      // shoulder pitch（v0.4.7 改用 rotation.z 修正方向）
       const map = { 8: 'LF', 9: 'RF', 10: 'RB', 11: 'LB' };
       this.setLeg(map[index], angle);
     } else if ([12, 13, 14, 15].includes(index)) {
+      // knee（v0.4.7 改用 rotation.z 修正方向）
       const map = { 12: 'LF', 13: 'RF', 14: 'RB', 15: 'LB' };
       const leg = this.legs[map[index]];
-      if (leg) leg.knee.rotation.x = THREE.MathUtils.degToRad(angle);
+      if (leg) leg.knee.rotation.z = THREE.MathUtils.degToRad(angle);
     }
     if (blocking) await this.sleep(400);
   }

@@ -13,6 +13,49 @@ related:
 
 ---
 
+## Round 17 — 2026-04-28 — v0.4.7 ★ 重要修正：腿擺動 axis 從 X 改 Z（修正「方向錯誤」）
+
+### 用戶反饋
+v0.4.6 雖然加了彈簧 + 4-bar 連動 + 平滑化，但「擺動方向還是錯誤」。
+
+### 根本原因（軸搞錯了）
+我之前所有 `setLeg` 用 `rotation.x` 旋轉腿，這在 Three.js 預設座標系（Y up, head 在 +X）裡是：
+- `rotation.x` = 繞 **X 軸**（前後軸）旋轉 → 腿在 Y-Z 平面擺動 → **側向左右晃**
+- 應該用 `rotation.z` = 繞 **Z 軸**（左右軸）旋轉 → 腿在 X-Y 平面擺動 → **前後擺動**
+
+實機 Bittle walk 是腿前後跨步，但我畫成側向晃 — 看起來當然怪。
+
+### 變更
+- **`setLeg`**：`rotation.x` → `rotation.z`（兩處：legGroup + knee）
+- **`resetLegs`**：用 `rotation.set(0,0,0)` 重置兩個 axis 避免殘留
+- **`animateServo`** 對 servo 8-11 / 12-15：同樣 axis 修正
+- 彈簧反饋邏輯不變，仍依 shoulder 絕對角度縮放
+
+### 為什麼之前 SVG 沒這問題
+SVG 是 2D，`transform: rotate()` 是繞紙面垂直軸（Z 軸）旋轉，**本來就是前後擺動**。所以 SVG 一直是對的。
+
+### 學到的經驗
+**Three.js 軸方向必須仔細確認**。即使 group 結構對、動畫邏輯對，axis 錯一個字母就視覺全錯。建議未來實作 3D 動畫時：
+1. 先寫一個「腿從 -45° 到 +45° 緩慢來回」的測試函數
+2. 視覺確認方向對了，再寫複雜動畫
+
+### Commit message 建議
+```
+fix(3d): use rotation.z instead of rotation.x for leg pitch
+
+- Previous rotation.x rotated legs sideways (around front-back axis)
+- Should be rotation.z (around left-right axis) for fore-aft swing
+- Affects all animations using setLeg (walk, sit, rest, hi, kick, etc.)
+- SVG simulator unaffected (always used 2D rotate)
+```
+
+### 下一步
+1. push
+2. 看 walk 是否終於對了
+3. 若 hi（揮手）等動作視覺不對，可能某些動作要分別用 rotation.x（側向抬腿）vs rotation.z（前後擺）
+
+---
+
 ## Round 16 — 2026-04-28 — v0.4.6 腿部結構重新設計（兩段關節 + 彈簧 + 4-bar 連動 + 平滑 walk）
 
 ### 用戶需求
