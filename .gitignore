@@ -40,5 +40,21 @@ secrets/
 *.tar.gz
 test-data/
 
+# 3D 模型檔（大檔 + 授權可能不明，不該上公開 repo）
+*.stl
+*.STL
+*.step
+*.STEP
+*.stp
+*.STP
+*.fbx
+*.FBX
+*.obj
+*.3mf
+*.dae
+*.glb
+*.gltf
+3d-models/
+
 # Cowork session 暫存（如有）
 .cowork-temp/
