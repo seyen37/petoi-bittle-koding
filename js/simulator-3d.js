@@ -36,7 +36,8 @@ class BittleSimulator3D {
 
   initScene() {
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x2c313c);
+    // v0.4.1：背景略亮，與深色 UI 一致但對比夠
+    this.scene.background = new THREE.Color(0x4a5466);
 
     const w = this.container.clientWidth || 400;
     const h = this.container.clientHeight || 280;
@@ -51,18 +52,18 @@ class BittleSimulator3D {
     this.renderer.shadowMap.enabled = true;
     this.container.appendChild(this.renderer.domElement);
 
-    // 地面
+    // 地面（v0.4.1：略亮，與背景區分）
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(1000, 1000),
-      new THREE.MeshStandardMaterial({ color: 0x1a1d24, roughness: 0.8 })
+      new THREE.MeshStandardMaterial({ color: 0x2a313e, roughness: 0.8 })
     );
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -100;
     ground.receiveShadow = true;
     this.scene.add(ground);
 
-    // 地面 grid 輔助
-    const grid = new THREE.GridHelper(1000, 20, 0x444444, 0x2c313c);
+    // 地面 grid 輔助（v0.4.1：grid 線變亮）
+    const grid = new THREE.GridHelper(1000, 20, 0x6a7280, 0x4a5466);
     grid.position.y = -99;
     this.scene.add(grid);
   }
@@ -70,9 +71,10 @@ class BittleSimulator3D {
   initBittle() {
     this.bittle = new THREE.Group();
 
-    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x2a3f5f, roughness: 0.4, metalness: 0.2 });
-    const accentMat = new THREE.MeshStandardMaterial({ color: 0x5fa9e8, emissive: 0x5fa9e8, emissiveIntensity: 0.3 });
-    const legMat = new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.6 });
+    // v0.4.1 配色升級：身體變亮藍、腿變中灰，全面提高對比
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x4a7fc1, roughness: 0.4, metalness: 0.3 });
+    const accentMat = new THREE.MeshStandardMaterial({ color: 0xffb84a, emissive: 0xff9d3a, emissiveIntensity: 0.5 }); // 改橘色高對比
+    const legMat = new THREE.MeshStandardMaterial({ color: 0xc0c0c0, roughness: 0.5, metalness: 0.4 }); // 銀灰金屬感
 
     // 身體（200×60×100 mm）
     const body = new THREE.Mesh(new THREE.BoxGeometry(200, 60, 100), bodyMat);
@@ -163,11 +165,13 @@ class BittleSimulator3D {
   }
 
   initLights() {
-    // 環境光
-    this.scene.add(new THREE.AmbientLight(0x666666));
+    // v0.4.1：增強整體照明，避免暗部融成一片
 
-    // 主方向光（含陰影）
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    // 環境光（從 0x666666 提升）
+    this.scene.add(new THREE.AmbientLight(0xa0a0a0));
+
+    // 主方向光（含陰影，從 0.8 → 1.0）
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
     dirLight.position.set(200, 400, 200);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 1024;
@@ -178,10 +182,15 @@ class BittleSimulator3D {
     dirLight.shadow.camera.bottom = -300;
     this.scene.add(dirLight);
 
-    // 補光（藍色，呼應品牌）
-    const fillLight = new THREE.DirectionalLight(0x5fa9e8, 0.3);
+    // 藍色補光（左下角，從 0.3 → 0.5）
+    const fillLight = new THREE.DirectionalLight(0x5fa9e8, 0.5);
     fillLight.position.set(-200, 100, -200);
     this.scene.add(fillLight);
+
+    // v0.4.1 新增：暖色背光（右後方，讓輪廓亮起）
+    const rimLight = new THREE.DirectionalLight(0xffd0a0, 0.4);
+    rimLight.position.set(150, 50, -300);
+    this.scene.add(rimLight);
   }
 
   initControls() {

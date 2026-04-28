@@ -13,6 +13,35 @@ related:
 
 ---
 
+## Round 11 — 2026-04-28 — v0.4.1 配色微調（提高 3D 模擬器對比度）
+
+### 變更
+- **`js/simulator-3d.js` 配色升級**：
+  - 背景：`0x2c313c`（暗灰）→ `0x4a5466`（中灰）
+  - 地面：`0x1a1d24` → `0x2a313e`（略亮）
+  - 身體：`0x2a3f5f`（深藍）→ `0x4a7fc1`（亮藍）
+  - 腿部：`0x3a3a3a`（深灰）→ `0xc0c0c0`（銀灰金屬感）
+  - 關節球：藍色 → **橘色 `0xffb84a` + 強 emissive**（高對比 accent）
+  - 環境光：`0x666666` → `0xa0a0a0`（更亮）
+  - 主方向光 intensity：0.8 → 1.0
+  - 藍色補光 intensity：0.3 → 0.5
+  - **新增 rimLight** 暖色背光（右後方）讓輪廓亮起
+
+### 為什麼改
+用戶反饋：身體深藍 + 腿部深灰 + 背景深灰，整個融在一起看不清楚。新配色讓銀灰腿在中灰背景上明顯凸顯，橘色關節球作為高對比 accent，整體立體感大增。
+
+### Commit message 建議
+```
+fix(3d): improve color contrast and lighting for 3D simulator visibility
+```
+
+### 下一步建議
+1. push
+2. Pages 1-3 分鐘後重整 https://seyen37.github.io/petoi-bittle-koding/
+3. 切到 3D 確認 Bittle 清楚可見
+
+---
+
 ## Round 10 — 2026-04-28 — v0.4 Three.js 3D 模擬器一氣呵成
 
 ### 變更
