@@ -13,6 +13,49 @@ related:
 
 ---
 
+## Round 13 — 2026-04-28 — v0.4.3 修正 walk / pushUp 動畫以符合實機 4-bar 彈簧腿機構
+
+### 用戶實機觀察（重要技術洞察）
+從用戶提供的 6 張 Bittle 實機照片發現：
+
+**Bittle 真實腳部結構**：
+- 上腿（黃色塊）+ 下腿（黑色）之間用**金屬彈簧**連接
+- 整體是 **4-bar linkage（四連桿機構）+ compliant spring** 設計
+- Servo 旋轉時，4-bar 連動 → 腳掌位置與方向都改變
+- 不是傳統的「肩 + 膝 兩段獨立旋轉」
+
+**對動畫的影響**：
+| Skill | 原本動畫（錯）| 實機真實表現 |
+|---|---|---|
+| `walk` | 對角腿前後擺動 | **左右擺動 + 重心轉移**（同側腿一起動）|
+| `pushUp` | 4 腿膝蓋彎到 60° | **整體上下**（彈簧腳長變化，腿不彎膝）|
+
+### 變更
+- **`js/simulator-3d.js` walk**：對角腿前後擺 → **同側腿一起 + bittle.rotation.z ±0.08 重心轉移**
+- **`js/simulator-3d.js` walkReverse**：方向反向，邏輯同上
+- **`js/simulator-3d.js` pushUp**：4 腿彎膝 → **保持伸直，bittle.position.y 在 -45 ~ +5 振盪**（模擬彈簧腳長）
+- **`js/simulator-svg.js` walk / walkReverse / pushUp**：同樣調整（SVG 沒 z 軸，用同側腿一起擺動暗示左右搖晃）
+- **加註解**：兩個 simulator 開頭加「實機 4-bar linkage + 彈簧腿設計，walk = 左右擺動、pushUp = 整體上下」說明
+
+### 待辦（不在這個 round）
+主筆記 `Petoi_程式研究筆記.md` Part 1.3 應補一段「腿部 4-bar linkage + 彈簧機構」說明（這是個重要技術細節，原本只寫 servo 編號沒提機構）。下個 round 處理或專門開一個 round 更新主筆記。
+
+### Commit message 建議
+```
+fix(animations): walk and pushUp now match real Bittle 4-bar spring-leg mechanics
+
+- Walk: side-to-side body sway instead of diagonal leg swing
+- PushUp: vertical body bounce (spring compression) instead of knee bend
+- Reflect user's hands-on observation of real hardware
+```
+
+### 下一步建議
+1. push
+2. Pages 1-3 分鐘後重整
+3. 切到 3D 試「走向前」與「伏地挺身」，確認動畫接近實機
+
+---
+
 ## Round 12 — 2026-04-28 — v0.4.2 加 3D 主題切換（暗黑/灰調/明亮）
 
 ### 變更

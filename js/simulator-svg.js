@@ -86,27 +86,33 @@ class BittleSimulator {
   }
 
   // ===== Animation Library（13 種 + 1 個 servo 直控）=====
+  // 重要設計註：實機 Bittle 用 4-bar linkage + 彈簧腿。
+  // walk = 左右擺動 / pushUp = 整體上下，已調整以接近實機視覺（Round 13）
   animations = {
     walk: async function () {
-      for (let i = 0; i < 4; i++) {
-        this.setLeg('LF', 30); this.setLeg('RB', 30);
-        this.setLeg('RF', -30); this.setLeg('LB', -30);
-        await this.sleep(280);
-        this.setLeg('LF', -30); this.setLeg('RB', -30);
-        this.setLeg('RF', 30); this.setLeg('LB', 30);
-        await this.sleep(280);
+      // 實機 4-bar 機構：左右擺動 + 同側腿一起動（重心轉移）
+      for (let i = 0; i < 5; i++) {
+        // 重心向右
+        this.setLeg('LF', 20); this.setLeg('LB', 20);
+        this.setLeg('RF', -10); this.setLeg('RB', -10);
+        await this.sleep(260);
+        // 重心向左
+        this.setLeg('LF', -10); this.setLeg('LB', -10);
+        this.setLeg('RF', 20); this.setLeg('RB', 20);
+        await this.sleep(260);
       }
       this.resetLegs();
     },
 
     walkReverse: async function () {
-      for (let i = 0; i < 4; i++) {
-        this.setLeg('LF', -30); this.setLeg('RB', -30);
-        this.setLeg('RF', 30); this.setLeg('LB', 30);
-        await this.sleep(280);
-        this.setLeg('LF', 30); this.setLeg('RB', 30);
-        this.setLeg('RF', -30); this.setLeg('LB', -30);
-        await this.sleep(280);
+      // 倒退：擺動方向相反
+      for (let i = 0; i < 5; i++) {
+        this.setLeg('LF', -20); this.setLeg('LB', -20);
+        this.setLeg('RF', 10); this.setLeg('RB', 10);
+        await this.sleep(260);
+        this.setLeg('LF', 10); this.setLeg('LB', 10);
+        this.setLeg('RF', -20); this.setLeg('RB', -20);
+        await this.sleep(260);
       }
       this.resetLegs();
     },
@@ -159,12 +165,16 @@ class BittleSimulator {
     },
 
     pushUp: async function () {
-      // 4 腿同時彎曲再展開，重複 2 次
-      for (let i = 0; i < 2; i++) {
-        ['LF', 'RF', 'LB', 'RB'].forEach((id) => this.setLeg(id, 60));
-        await this.sleep(300);
+      // 實機 4-bar 機構：彈簧腳長變化 → 整體上下，腿不彎膝
+      // SVG 沒有 z 軸，用 4 腿輕微外擺暗示「彈簧伸縮」
+      for (let i = 0; i < 3; i++) {
+        // 腳長縮短（4 腿微微外擺暗示彈簧壓縮）
+        ['LF', 'RF'].forEach((id) => this.setLeg(id, 15));
+        ['LB', 'RB'].forEach((id) => this.setLeg(id, -15));
+        await this.sleep(280);
+        // 腳長伸長（恢復）
         this.resetLegs();
-        await this.sleep(300);
+        await this.sleep(280);
       }
     },
 

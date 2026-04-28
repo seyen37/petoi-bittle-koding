@@ -365,28 +365,42 @@ class BittleSimulator3D {
   }
 
   // ===== Animation Library（同 SVG 13 種，但 3D 版含關節 + 整體位移）=====
+  // 重要設計註：實機 Bittle 用 4-bar linkage + 彈簧腿設計（每腿上下兩段由彈簧連接）。
+  // Servo 旋轉時，4-bar 連動 → 腳掌位置變化，不是傳統的「肩 + 膝兩段獨立旋轉」。
+  // 因此：walk = 左右擺動（重心轉移） / pushUp = 整體上下（彈簧腳長變化），
+  // 已調整以接近實機視覺。詳見 Round 13 WORKLOG。
   animations = {
     walk: async function () {
-      for (let i = 0; i < 4; i++) {
-        this.setLeg('LF', 30); this.setLeg('RB', 30);
-        this.setLeg('RF', -30); this.setLeg('LB', -30);
-        await this.sleep(280);
-        this.setLeg('LF', -30); this.setLeg('RB', -30);
-        this.setLeg('RF', 30); this.setLeg('LB', 30);
-        await this.sleep(280);
+      // 實機觀察：4-bar 機構讓走路看起來像「左右擺動 + 重心轉移」
+      for (let i = 0; i < 5; i++) {
+        // 重心向右
+        this.bittle.rotation.z = -0.08;
+        this.setLeg('LF', 20); this.setLeg('LB', 20);
+        this.setLeg('RF', -10); this.setLeg('RB', -10);
+        await this.sleep(260);
+        // 重心向左
+        this.bittle.rotation.z = 0.08;
+        this.setLeg('LF', -10); this.setLeg('LB', -10);
+        this.setLeg('RF', 20); this.setLeg('RB', 20);
+        await this.sleep(260);
       }
+      this.bittle.rotation.z = 0;
       this.resetLegs();
     },
 
     walkReverse: async function () {
-      for (let i = 0; i < 4; i++) {
-        this.setLeg('LF', -30); this.setLeg('RB', -30);
-        this.setLeg('RF', 30); this.setLeg('LB', 30);
-        await this.sleep(280);
-        this.setLeg('LF', 30); this.setLeg('RB', 30);
-        this.setLeg('RF', -30); this.setLeg('LB', -30);
-        await this.sleep(280);
+      // 倒退：對角腿擺動方向相反，重心轉移依然
+      for (let i = 0; i < 5; i++) {
+        this.bittle.rotation.z = 0.08;
+        this.setLeg('LF', -20); this.setLeg('LB', -20);
+        this.setLeg('RF', 10); this.setLeg('RB', 10);
+        await this.sleep(260);
+        this.bittle.rotation.z = -0.08;
+        this.setLeg('LF', 10); this.setLeg('LB', 10);
+        this.setLeg('RF', -20); this.setLeg('RB', -20);
+        await this.sleep(260);
       }
+      this.bittle.rotation.z = 0;
       this.resetLegs();
     },
 
@@ -448,14 +462,16 @@ class BittleSimulator3D {
     },
 
     pushUp: async function () {
-      for (let i = 0; i < 2; i++) {
-        ['LF', 'RF', 'LB', 'RB'].forEach((id) => this.setLeg(id, 0, 60));
-        this.bittle.position.y = -30;
-        await this.sleep(300);
-        this.resetLegs();
-        this.bittle.position.y = 0;
-        await this.sleep(300);
+      // 實機觀察：彈簧腳長變化 → 身體上下，4 腿不彎膝（保持伸直）
+      for (let i = 0; i < 3; i++) {
+        // 腳長收縮 → 身體下沉
+        this.bittle.position.y = -45;
+        await this.sleep(280);
+        // 腳長伸長 → 身體上升
+        this.bittle.position.y = 5;
+        await this.sleep(280);
       }
+      this.bittle.position.y = 0;
     },
 
     shake: async function () {
