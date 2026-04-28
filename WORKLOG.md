@@ -13,6 +13,53 @@ related:
 
 ---
 
+## Round 10 — 2026-04-28 — v0.4 Three.js 3D 模擬器一氣呵成
+
+### 變更
+- **新增 `js/simulator-3d.js`**（~340 行）：Three.js BittleSimulator3D class，含 procedural Bittle mesh + 13 種 3D animation + OrbitControls
+- **更新 `index.html`**：加 Three.js v0.160 importmap、3D simulator 容器、模擬器標題列加「2D/3D 切換」按鈕、ES module script 載入 simulator-3d.js
+- **更新 `css/style.css`**：加 panel-header / btn-mini / simulator-3d-area 樣式
+- **更新 `js/main.js`**：BittleApp.runtime.simMode 切換、btn-sim-mode click handler
+- **新增 ADR-009**：紀錄 procedural mesh vs 真實 STL 的取捨
+
+### 為何選 procedural mesh 而非真實 STL/FBX
+詳見 DECISIONS.md ADR-009。簡述：
+1. 用戶 STL 有 736K 面、36 MB，對 GitHub Pages 不友善
+2. Petoi STEP/FBX 內部資料授權不明，不能上 Public repo
+3. 教育用途用 Box/Sphere/Cylinder 拼出 Bittle 形狀已足夠
+
+### v0.4 3D 模擬器特性
+- **視覺**：藍灰機身 + 黑色 4 腿 + 藍色關節球 + 雙眼發光
+- **互動**：OrbitControls（滑鼠拖拉旋轉、滾輪縮放、右鍵平移）
+- **光照**：環境光 + 主光源（含陰影）+ 藍色補光
+- **動畫**：13 種，與 SVG 模擬器使用相同 BITTLE_SKILLS metadata（共用 animation 對應）
+- **3D 加分動作**：jump 真的會跳起、sit 整體下沉並前傾、shake 有 z 軸搖擺
+
+### Commit message 建議
+```
+feat: v0.4 add Three.js 3D simulator with procedural Bittle mesh
+
+- New simulator-3d.js with OrbitControls + 13 animations
+- Add Three.js v0.160 via importmap CDN
+- Add 2D/3D toggle button in simulator panel
+- Procedural mesh (no external STL needed) — see ADR-009
+- Animation library reuses BITTLE_SKILLS metadata (DRY)
+```
+
+### 下一步建議
+1. push 到兩個 GitHub
+2. Pages 等 1-3 分鐘自動更新
+3. 訪問 https://seyen37.github.io/petoi-bittle-koding/ 測試 3D
+4. 點 simulator 區頂部「🎬 切到 3D」按鈕，3D Bittle 出現
+5. 滑鼠拖拉旋轉視角，按各種積木看 3D 動畫
+
+### 學到的經驗
+- Three.js v0.160 已不支援 examples/js（UMD），必須用 importmap + ES module
+- ES module script 是 implicit deferred，會在所有 sync script 之後執行 — 完美時機 init 3D simulator
+- BITTLE_SKILLS metadata 設計（ADR-008）讓 SVG 與 3D simulator 共用 animation 對應，零重複
+
+---
+
 ## Round 9 — 2026-04-28 — v0.2 動作積木擴充：6 → 51 個（metadata-driven 重構）
 
 ### 變更

@@ -7,6 +7,7 @@ window.BittleApp = window.BittleApp || {};
 // === Runtime：根據模式派送指令到 simulator 或 serial ===
 BittleApp.runtime = {
   mode: 'simulator', // 'simulator' or 'serial'
+  simMode: '2d',     // '2d' or '3d'（v0.4 新增）
   abortRequested: false,
 
   async send(asciiCommand) {
@@ -14,6 +15,10 @@ BittleApp.runtime = {
     if (this.mode === 'serial' && BittleApp.serial.isConnected()) {
       return BittleApp.serial.send(asciiCommand);
     } else {
+      // 模擬模式：依 simMode 選 2D / 3D
+      if (this.simMode === '3d' && BittleApp.simulator3D) {
+        return BittleApp.simulator3D.executeSkill(asciiCommand);
+      }
       return BittleApp.simulator.executeSkill(asciiCommand);
     }
   },
@@ -102,6 +107,35 @@ window.addEventListener('DOMContentLoaded', () => {
       BittleApp.runtime.mode = 'simulator';
       document.getElementById('btn-mode').textContent = '模式：🖥️ 模擬';
       BittleApp.log('已切換到模擬模式', 'success');
+    }
+  };
+
+  // === v0.4 新增：2D / 3D 模擬模式切換 ===
+  document.getElementById('btn-sim-mode').onclick = () => {
+    const svgArea = document.getElementById('simulator-area');
+    const threeDArea = document.getElementById('simulator-3d-area');
+    const btn = document.getElementById('btn-sim-mode');
+
+    if (BittleApp.runtime.simMode === '2d') {
+      // 切到 3D
+      if (!BittleApp.simulator3D) {
+        BittleApp.log('⚠️ 3D 模擬器尚未載入，請稍候再試（檢查瀏覽器是否支援 ES modules）', 'warn');
+        return;
+      }
+      BittleApp.runtime.simMode = '3d';
+      svgArea.style.display = 'none';
+      threeDArea.style.display = 'block';
+      btn.textContent = '🖼️ 切回 2D';
+      // 給 3D simulator 一個 frame 重新調整 canvas 大小
+      setTimeout(() => BittleApp.simulator3D.resize(), 50);
+      BittleApp.log('已切換到 3D 模擬器（用滑鼠拖拉旋轉視角，滾輪縮放）', 'success');
+    } else {
+      // 切回 2D
+      BittleApp.runtime.simMode = '2d';
+      svgArea.style.display = 'block';
+      threeDArea.style.display = 'none';
+      btn.textContent = '🎬 切到 3D';
+      BittleApp.log('已切換到 2D SVG 模擬器', 'success');
     }
   };
 

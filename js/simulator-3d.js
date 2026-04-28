@@ -1,0 +1,457 @@
+/* ==========================================================
+   simulator-3d.js — Three.js 3D 模擬器（v0.4）
+   ----------------------------------------------------------
+   設計：Procedural mesh（Box/Sphere/Cylinder 拼成 Bittle）
+   為什麼不用真實 STL？見 DECISIONS.md ADR-009
+     - 36MB STL 對 GitHub Pages 不友善
+     - Petoi STEP 內部資料授權不明、不可公開
+     - Procedural mesh 對教育用途已足夠
+
+   架構：ES module（用 importmap）；init 完掛載到 window.BittleApp.simulator3D
+   ========================================================== */
+
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+class BittleSimulator3D {
+  constructor(containerEl) {
+    this.container = containerEl;
+    this.statusLine = document.getElementById('status-line');
+
+    this.initScene();
+    this.initBittle();
+    this.initLights();
+    this.initControls();
+    this.startRenderLoop();
+    this.bindResize();
+
+    // 對照 ASCII → animation（與 SVG simulator 同 metadata 來源）
+    this.skillAnimMap = {};
+    if (window.BittleApp && window.BittleApp.BITTLE_SKILLS) {
+      window.BittleApp.BITTLE_SKILLS.forEach((s) => {
+        this.skillAnimMap[s.ascii] = s.anim;
+      });
+    }
+  }
+
+  initScene() {
+    this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color(0x2c313c);
+
+    const w = this.container.clientWidth || 400;
+    const h = this.container.clientHeight || 280;
+
+    this.camera = new THREE.PerspectiveCamera(45, w / h, 1, 3000);
+    this.camera.position.set(350, 250, 350);
+    this.camera.lookAt(0, 0, 0);
+
+    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer.setSize(w, h);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.shadowMap.enabled = true;
+    this.container.appendChild(this.renderer.domElement);
+
+    // 地面
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(1000, 1000),
+      new THREE.MeshStandardMaterial({ color: 0x1a1d24, roughness: 0.8 })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -100;
+    ground.receiveShadow = true;
+    this.scene.add(ground);
+
+    // 地面 grid 輔助
+    const grid = new THREE.GridHelper(1000, 20, 0x444444, 0x2c313c);
+    grid.position.y = -99;
+    this.scene.add(grid);
+  }
+
+  initBittle() {
+    this.bittle = new THREE.Group();
+
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x2a3f5f, roughness: 0.4, metalness: 0.2 });
+    const accentMat = new THREE.MeshStandardMaterial({ color: 0x5fa9e8, emissive: 0x5fa9e8, emissiveIntensity: 0.3 });
+    const legMat = new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.6 });
+
+    // 身體（200×60×100 mm）
+    const body = new THREE.Mesh(new THREE.BoxGeometry(200, 60, 100), bodyMat);
+    body.castShadow = true;
+    this.bittle.add(body);
+
+    // 頭部 group（旋轉中心在頸部，可 head pan）
+    this.head = new THREE.Group();
+    this.head.position.set(130, 20, 0);
+    const headBall = new THREE.Mesh(new THREE.SphereGeometry(35, 24, 16), bodyMat);
+    headBall.castShadow = true;
+    this.head.add(headBall);
+
+    // 雙眼
+    [25, -25].forEach((z) => {
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(8, 12, 12), accentMat);
+      eye.position.set(20, 5, z);
+      this.head.add(eye);
+    });
+
+    // 嘴巴（小條）
+    const mouth = new THREE.Mesh(
+      new THREE.BoxGeometry(2, 2, 20),
+      new THREE.MeshStandardMaterial({ color: 0x5fa9e8 })
+    );
+    mouth.position.set(28, -8, 0);
+    this.head.add(mouth);
+
+    this.bittle.add(this.head);
+
+    // 4 條腿
+    this.legs = {};
+    const legPositions = {
+      LF: { x: 60, z: 50 },
+      RF: { x: 60, z: -50 },
+      LB: { x: -60, z: 50 },
+      RB: { x: -60, z: -50 },
+    };
+
+    Object.entries(legPositions).forEach(([id, pos]) => {
+      // shoulder pivot group（rotation.x = shoulder pitch）
+      const legGroup = new THREE.Group();
+      legGroup.position.set(pos.x, -30, pos.z);
+
+      // upper leg（從 shoulder 往下 60 mm）
+      const upper = new THREE.Mesh(
+        new THREE.CylinderGeometry(8, 8, 60, 12),
+        legMat
+      );
+      upper.position.y = -30;
+      upper.castShadow = true;
+      legGroup.add(upper);
+
+      // shoulder 關節指示（藍球）
+      const shoulderBall = new THREE.Mesh(
+        new THREE.SphereGeometry(7, 12, 12),
+        accentMat
+      );
+      legGroup.add(shoulderBall);
+
+      // knee group（rotation.x = knee）
+      const kneeGroup = new THREE.Group();
+      kneeGroup.position.y = -60;
+
+      const lower = new THREE.Mesh(
+        new THREE.CylinderGeometry(6, 6, 50, 10),
+        legMat
+      );
+      lower.position.y = -25;
+      lower.castShadow = true;
+      kneeGroup.add(lower);
+
+      // 足底（小球）
+      const foot = new THREE.Mesh(
+        new THREE.SphereGeometry(7, 12, 12),
+        legMat
+      );
+      foot.position.y = -50;
+      kneeGroup.add(foot);
+
+      legGroup.add(kneeGroup);
+      this.bittle.add(legGroup);
+
+      this.legs[id] = { group: legGroup, knee: kneeGroup };
+    });
+
+    this.scene.add(this.bittle);
+  }
+
+  initLights() {
+    // 環境光
+    this.scene.add(new THREE.AmbientLight(0x666666));
+
+    // 主方向光（含陰影）
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(200, 400, 200);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 1024;
+    dirLight.shadow.mapSize.height = 1024;
+    dirLight.shadow.camera.left = -300;
+    dirLight.shadow.camera.right = 300;
+    dirLight.shadow.camera.top = 300;
+    dirLight.shadow.camera.bottom = -300;
+    this.scene.add(dirLight);
+
+    // 補光（藍色，呼應品牌）
+    const fillLight = new THREE.DirectionalLight(0x5fa9e8, 0.3);
+    fillLight.position.set(-200, 100, -200);
+    this.scene.add(fillLight);
+  }
+
+  initControls() {
+    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.05;
+    this.controls.minDistance = 200;
+    this.controls.maxDistance = 1500;
+    this.controls.target.set(0, 0, 0);
+    this.controls.update();
+  }
+
+  startRenderLoop() {
+    const animate = () => {
+      requestAnimationFrame(animate);
+      this.controls.update();
+      this.renderer.render(this.scene, this.camera);
+    };
+    animate();
+  }
+
+  bindResize() {
+    window.addEventListener('resize', () => this.resize());
+    // 切換到 3D 模式時也要 resize
+    this.resize = () => {
+      const w = this.container.clientWidth || 400;
+      const h = this.container.clientHeight || 280;
+      if (w === 0 || h === 0) return;
+      this.camera.aspect = w / h;
+      this.camera.updateProjectionMatrix();
+      this.renderer.setSize(w, h);
+    };
+  }
+
+  setStatus(text) {
+    if (this.statusLine) this.statusLine.textContent = '狀態（3D）：' + text;
+  }
+
+  setLeg(id, shoulderDeg, kneeDeg = 0) {
+    const leg = this.legs[id];
+    if (!leg) return;
+    leg.group.rotation.x = THREE.MathUtils.degToRad(shoulderDeg);
+    leg.knee.rotation.x = THREE.MathUtils.degToRad(kneeDeg);
+  }
+
+  resetLegs() {
+    Object.keys(this.legs).forEach((id) => this.setLeg(id, 0, 0));
+  }
+
+  resetHead() {
+    this.head.rotation.set(0, 0, 0);
+  }
+
+  // ===== 主入口（與 SVG simulator 同 API）=====
+  async executeSkill(asciiCommand) {
+    this.setStatus('執行 ' + asciiCommand);
+
+    const animName = this.skillAnimMap[asciiCommand];
+    if (animName && this.animations[animName]) {
+      await this.animations[animName].call(this);
+    } else if (asciiCommand.startsWith('m ')) {
+      const parts = asciiCommand.split(/\s+/);
+      const index = parseInt(parts[1], 10);
+      const angle = parseInt(parts[2], 10);
+      await this.animateServo(index, angle);
+    } else if (asciiCommand.startsWith('i ')) {
+      const parts = asciiCommand.split(/\s+/);
+      for (let p = 1; p < parts.length; p += 2) {
+        const idx = parseInt(parts[p], 10);
+        const ang = parseInt(parts[p + 1], 10);
+        await this.animateServo(idx, ang, false);
+      }
+      await this.sleep(500);
+    } else if (asciiCommand.startsWith('b ')) {
+      await this.animations.beep.call(this);
+    } else {
+      this.setStatus('未對應的指令: ' + asciiCommand + '（fallback shake）');
+      await this.animations.shake.call(this);
+    }
+
+    this.setStatus('就緒');
+  }
+
+  // ===== Animation Library（同 SVG 13 種，但 3D 版含關節 + 整體位移）=====
+  animations = {
+    walk: async function () {
+      for (let i = 0; i < 4; i++) {
+        this.setLeg('LF', 30); this.setLeg('RB', 30);
+        this.setLeg('RF', -30); this.setLeg('LB', -30);
+        await this.sleep(280);
+        this.setLeg('LF', -30); this.setLeg('RB', -30);
+        this.setLeg('RF', 30); this.setLeg('LB', 30);
+        await this.sleep(280);
+      }
+      this.resetLegs();
+    },
+
+    walkReverse: async function () {
+      for (let i = 0; i < 4; i++) {
+        this.setLeg('LF', -30); this.setLeg('RB', -30);
+        this.setLeg('RF', 30); this.setLeg('LB', 30);
+        await this.sleep(280);
+        this.setLeg('LF', 30); this.setLeg('RB', 30);
+        this.setLeg('RF', -30); this.setLeg('LB', -30);
+        await this.sleep(280);
+      }
+      this.resetLegs();
+    },
+
+    sit: async function () {
+      this.setLeg('LF', -20, 0); this.setLeg('RF', -20, 0);
+      this.setLeg('LB', 60, 60); this.setLeg('RB', 60, 60);
+      this.bittle.position.y = -20;
+      this.bittle.rotation.x = -0.1;
+      await this.sleep(800);
+    },
+
+    rest: async function () {
+      this.setLeg('LF', 60, 30); this.setLeg('RF', 60, 30);
+      this.setLeg('LB', -60, 30); this.setLeg('RB', -60, 30);
+      this.bittle.position.y = -40;
+      await this.sleep(800);
+    },
+
+    balance: async function () {
+      this.resetLegs();
+      this.resetHead();
+      this.bittle.position.y = 0;
+      this.bittle.rotation.set(0, 0, 0);
+      await this.sleep(400);
+    },
+
+    hi: async function () {
+      this.resetLegs();
+      for (let i = 0; i < 3; i++) {
+        this.setLeg('RF', -60, 30);
+        await this.sleep(220);
+        this.setLeg('RF', -90, 60);
+        await this.sleep(220);
+      }
+      this.resetLegs();
+    },
+
+    jump: async function () {
+      // 蹲下蓄力
+      ['LF', 'RF', 'LB', 'RB'].forEach((id) => this.setLeg(id, 50, 30));
+      this.bittle.position.y = -30;
+      await this.sleep(200);
+      // 跳起
+      ['LF', 'RF', 'LB', 'RB'].forEach((id) => this.setLeg(id, -30, 0));
+      this.bittle.position.y = 80;
+      await this.sleep(200);
+      // 落地
+      this.bittle.position.y = 0;
+      this.resetLegs();
+      await this.sleep(150);
+    },
+
+    kick: async function () {
+      this.setLeg('RF', -80, 30);
+      await this.sleep(300);
+      this.setLeg('RF', 60, -10);
+      await this.sleep(300);
+      this.resetLegs();
+    },
+
+    pushUp: async function () {
+      for (let i = 0; i < 2; i++) {
+        ['LF', 'RF', 'LB', 'RB'].forEach((id) => this.setLeg(id, 0, 60));
+        this.bittle.position.y = -30;
+        await this.sleep(300);
+        this.resetLegs();
+        this.bittle.position.y = 0;
+        await this.sleep(300);
+      }
+    },
+
+    shake: async function () {
+      for (let i = 0; i < 2; i++) {
+        ['LF', 'RF', 'LB', 'RB'].forEach((id) => this.setLeg(id, 15));
+        this.bittle.rotation.z = 0.1;
+        await this.sleep(180);
+        ['LF', 'RF', 'LB', 'RB'].forEach((id) => this.setLeg(id, -15));
+        this.bittle.rotation.z = -0.1;
+        await this.sleep(180);
+      }
+      this.resetLegs();
+      this.bittle.rotation.z = 0;
+    },
+
+    nod: async function () {
+      for (let i = 0; i < 3; i++) {
+        this.head.rotation.x = THREE.MathUtils.degToRad(20);
+        await this.sleep(200);
+        this.head.rotation.x = THREE.MathUtils.degToRad(-20);
+        await this.sleep(200);
+      }
+      this.head.rotation.x = 0;
+    },
+
+    stretch: async function () {
+      this.setLeg('LF', -45, 0); this.setLeg('RF', -45, 0);
+      this.setLeg('LB', 45, 0); this.setLeg('RB', 45, 0);
+      await this.sleep(800);
+      this.resetLegs();
+    },
+
+    buttUp: async function () {
+      this.setLeg('LF', 60, 0); this.setLeg('RF', 60, 0);
+      this.setLeg('LB', -45, 60); this.setLeg('RB', -45, 60);
+      this.bittle.rotation.x = 0.2;
+      await this.sleep(800);
+      this.bittle.rotation.x = 0;
+    },
+
+    beep: async function () {
+      // 雙眼閃爍
+      const eyes = this.head.children.filter((c) => c.geometry?.type === 'SphereGeometry' && c !== this.head.children[0]);
+      eyes.forEach((eye) => {
+        eye.material.emissiveIntensity = 1;
+      });
+      await this.sleep(150);
+      eyes.forEach((eye) => {
+        eye.material.emissiveIntensity = 0.3;
+      });
+      await this.sleep(100);
+    },
+  };
+
+  async animateServo(index, angle, blocking = true) {
+    if (index === 0) {
+      // head pan
+      this.head.rotation.y = THREE.MathUtils.degToRad(angle);
+    } else if ([8, 9, 10, 11].includes(index)) {
+      const map = { 8: 'LF', 9: 'RF', 10: 'RB', 11: 'LB' };
+      this.setLeg(map[index], angle);
+    } else if ([12, 13, 14, 15].includes(index)) {
+      const map = { 12: 'LF', 13: 'RF', 14: 'RB', 15: 'LB' };
+      const leg = this.legs[map[index]];
+      if (leg) leg.knee.rotation.x = THREE.MathUtils.degToRad(angle);
+    }
+    if (blocking) await this.sleep(400);
+  }
+
+  sleep(ms) {
+    return new Promise((r) => setTimeout(r, ms));
+  }
+}
+
+// 掛載到 global
+window.BittleApp = window.BittleApp || {};
+window.BittleApp.BittleSimulator3D = BittleSimulator3D;
+
+// Auto init when 3D container exists & DOM ready
+function tryInit3D() {
+  const container = document.getElementById('simulator-3d-area');
+  if (!container) {
+    console.warn('[BittleApp] 3D container not found, skipping 3D init');
+    return;
+  }
+  try {
+    window.BittleApp.simulator3D = new BittleSimulator3D(container);
+    console.log('[BittleApp] 3D simulator initialized');
+  } catch (e) {
+    console.error('[BittleApp] 3D init failed:', e);
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', tryInit3D);
+} else {
+  tryInit3D();
+}

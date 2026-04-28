@@ -10,6 +10,16 @@
   <!-- ⭐ JavaScript generator 必載（少了這行 workspaceToCode 會回傳空字串）-->
   <script src="https://unpkg.com/blockly@10/javascript_compressed.js"></script>
   <script src="https://unpkg.com/blockly@10/msg/zh-hant.js"></script>
+
+  <!-- Three.js v0.160 via importmap（v0.4 3D 模擬器用）-->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
 </head>
 <body>
   <header>
@@ -33,7 +43,11 @@
     <!-- 右：模擬器 + Log -->
     <aside class="right-panel">
       <div class="panel-section">
-        <h3>模擬器</h3>
+        <div class="panel-header">
+          <h3>模擬器</h3>
+          <button id="btn-sim-mode" class="btn-mini" title="切換 2D / 3D 模擬模式">🎬 切到 3D</button>
+        </div>
+        <!-- 2D SVG 模擬器（預設顯示）-->
         <div id="simulator-area">
           <!-- Bittle SVG inline (避免 file:// 的 fetch CORS 問題) -->
           <svg id="bittle-svg" viewBox="0 0 400 280" xmlns="http://www.w3.org/2000/svg">
@@ -83,6 +97,8 @@
             <text x="200" y="265" text-anchor="middle" fill="#888" font-size="11" font-family="monospace">Bittle (NyBoard V1)</text>
           </svg>
         </div>
+        <!-- 3D Three.js 模擬器（預設隱藏，按鈕切換）-->
+        <div id="simulator-3d-area" style="display: none;"></div>
         <div id="status-line">狀態：等待指令</div>
       </div>
 
@@ -103,5 +119,7 @@
   <script src="js/simulator-svg.js"></script>
   <script src="js/serial.js"></script>
   <script src="js/main.js"></script>
+  <!-- v0.4 3D 模擬器（ES module，會在所有 sync script 之後執行）-->
+  <script type="module" src="js/simulator-3d.js"></script>
 </body>
 </html>

@@ -89,17 +89,22 @@
 
 ---
 
-## v0.4.0 — Three.js 3D 模擬（預估 2-4 週）
+## v0.4.0 — Three.js 3D 模擬（已完成 2026-04-28，提前實作）
 
-呼應主筆記《Petoi_模擬環境_執行計畫.md》的階段 2-3。
+- [x] Three.js v0.160 整合（importmap CDN）
+- [x] **Procedural Bittle mesh**（Box/Sphere/Cylinder，無 URDF 依賴 — 詳見 ADR-009）
+- [x] OrbitControls：滑鼠拖拉旋轉、滾輪縮放、右鍵平移
+- [x] 13 種 3D 動畫（共用 BITTLE_SKILLS metadata）
+- [x] 「2D / 3D 切換」按鈕（simulator 區頂部）
+- [x] 環境光 + 主光源（含陰影）+ 藍色補光
+- [x] 3D 加分動作：jump 跳起、sit 整體下沉前傾
 
-- [ ] Three.js 整合（CDN）
-- [ ] 載入 Bittle URDF（從 AIWintermuteAI/Bittle_URDF）
-- [ ] 簡化的物理（不上 Cannon.js / Ammo.js，用近似動力）
-- [ ] 鏡頭控制（旋轉、縮放、平移）
-- [ ] 「2D / 3D 切換」按鈕
+**為何不用真實 STL/FBX**：用戶有 Petoi 官方 STEP/FBX/STL，但 (1) 36MB STL 對 Pages 不友善 (2) Petoi 內部資料授權不明、不能 commit Public。Procedural mesh 對教育用途已足夠。詳見 DECISIONS.md ADR-009。
 
-⚠️ **挑戰**：URDF 載入到 Three.js 需要 `urdf-loader` 函式庫；3D 動畫對應 servo 角度需要更複雜的 IK；可能要 web worker 不阻塞 UI。
+**未來可選的擴充**（v0.5+）：
+- [ ] 加 STL loader stub（給用戶本地簡化版 STL 或自行授權的 mesh）
+- [ ] 加 URDF loader（呼應主筆記模擬環境執行計畫階段 2）
+- [ ] 物理引擎（Cannon.js）讓動作有重力反饋
 
 ---
 
