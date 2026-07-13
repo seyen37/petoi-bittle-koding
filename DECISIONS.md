@@ -30,8 +30,9 @@ related:
 | 011 | 內部 namespace 重構 | `BittleApp` → **`DogLabApp`**（清 ADR-010 technical debt） |
 | 012 | 事件積木觸發模式 | **手動觸發**（UI 按鈕 + console API），polling 留 v0.7 |
 | 013 | 移除 2D SVG simulator | **3D 為唯一模擬器**（保留檔案不刪），加尺寸切換 toggle |
+| 014 | 專案整體規劃建議書體系 | **策略層文件放 repo 根 markdown / 15 sections + 4 附錄 / 12.5 修訂觸發原則**（決策層 ADR / 執行層 WORKLOG 分工）|
 
-未來 ADR 從 014 起編號。
+未來 ADR 從 015 起編號。
 
 ---
 
@@ -652,6 +653,79 @@ ADR-003 的「MVP 用 SVG，v0.4+ 加 Three.js 3D」中「保留 SVG 雙軌」�
 
 ---
 
+## ADR-014：專案整體規劃建議書體系（策略層文件）
+
+**Status**: Accepted（2026-05-25）
+**Context**：Round 27 用戶要求「重新規劃原有專案、分析架構、目標與運作模式、探索可行性、提出整體規劃建議書 + roadmap + 執行原則」。既有紀律：DECISIONS.md（單點決策 ADR）+ WORKLOG.md（round 執行紀錄）。缺**策略層**文件承接「12 個月方向 / 三方向策略選擇 / roadmap phase / 執行原則」。
+
+### Options
+
+| 方案 | 優點 | 缺點 |
+|---|---|---|
+| A. 用大 ADR-014 涵蓋所有策略性內容 | ADR 體系一致 | 單一 ADR 過長、混淆「單點決策」與「整體規劃」語意 |
+| **B. 新建 `專案整體規劃建議書.md` 於 repo 根**（策略層）| 分工清楚（策略 / 決策 / 執行三層）、可獨立 review | 多一份文件、需維護對齊 |
+| C. 放 docs/ 內 | 跟 architecture.md / roadmap.md 同層 | 策略層應該提到 root 層級 visibility |
+| D. 放外部（如 personal-playbook）| 通用性最高 | 專案特定內容、不宜通用化 |
+
+### Decision
+
+選 **B**。同時新建 `PRINCIPLES.md` 於 repo 根（承接建議書 §12 執行原則 + 專案級 coding principles）。
+
+### Rationale
+
+1. **三層文件分工清楚**：
+   - 策略層 = 專案整體規劃建議書.md（12 個月方向 / 三方向策略 / roadmap phase / 執行原則）
+   - 決策層 = DECISIONS.md（14 ADR、單點架構決策、Michael Nygard 格式）
+   - 執行層 = WORKLOG.md（27 rounds、逐 round 變更）
+2. **repo 根層級 visibility**：策略層文件應該跟 README / DECISIONS / WORKLOG 同層、fork 者一眼看見
+3. **獨立 review 週期**：建議書有自己的 §12.5 修訂觸發原則（大版本升級 / 新機器人動工前 / 新方向決策 / 每 6 個月）、跟 ADR 的「一次寫 immutable」不同
+4. **PRINCIPLES.md 補角色**：建議書 §12 focus「架構決策 / 開發流程 / 教學設計 / 品牌授權 / 修訂觸發」5 類戰略級原則、PRINCIPLES.md focus「coding style + repo 結構 + 交付紀律」戰術級原則、兩者互補
+
+### 建議書規格
+
+| 項目 | 值 |
+|---|---|
+| 檔案 | `專案整體規劃建議書.md`（repo 根） |
+| 版本 | v1.0 |
+| 篇幅 | 683 行 / 31KB |
+| 結構 | 15 sections + 4 附錄 |
+| 建立日期 | 2026-05-25 |
+| 對應版本 | v0.5.1（Round 26 milestone 後）|
+| 交付格式 | Markdown（依用戶 Q3 選擇）|
+| 對應版本控制 | Git commit `05c879f`（雙 remote 已推）|
+
+### 12.5 修訂觸發原則（建議書 §12.5）
+
+當滿足以下條件之一、應該 review 建議書：
+1. v0.x → v0.(x+1) 大版本升級後
+2. 新機器人支援動工前（v0.7 Padog / v0.8 microbit）
+3. 新方向決策（如引入 build pipeline / 改授權 / 拆分 repo）
+4. 每 6 個月強制 review 一次
+
+### Consequences
+
+- ✅ 策略層文件 visible、fork 者一眼看到專案方向
+- ✅ 分工清楚：策略 vs 決策 vs 執行、cross-ref 引用不重疊
+- ✅ 定期 review 機制（§12.5）避免變 orphan doc
+- ✅ 附錄 A 已列出 ADR-015~021 提案清單、後續 ADR 有 trace
+- ⚠️ 需維護策略層文件跟 ADR / WORKLOG 對齊（每 milestone 更新一次）
+- ⚠️ Fork 者需理解三層分工（README 應該 cross-ref 建議書）
+
+### 對未來多機器人擴充的影響
+
+策略層文件可作為「新機器人加入前的 dry-run 檢核表」：
+- 讀建議書 §五（類似專案盤點）確認新機器人定位
+- 讀建議書 §附錄 A 確認 ADR 提案
+- 讀建議書 §十一 Roadmap 確認 Phase 對應
+
+### 對應章節
+
+- `專案整體規劃建議書.md` §12「執行原則」
+- `PRINCIPLES.md`（配對新建、戰術級）
+- WORKLOG.md Round 27（本 round）
+
+---
+
 ## 未來新增 ADR 的時機
 
 當您（或我）做以下決策時，請新增 ADR：
@@ -668,4 +742,4 @@ ADR-003 的「MVP 用 SVG，v0.4+ 加 Three.js 3D」中「保留 SVG 雙軌」�
 
 ---
 
-*ADR 第 1-7 號完成於 2026-04-27。新 ADR 編號從 008 開始，**永遠 append，不修改既有 ADR**（如要修改，新 ADR 標註 Supersedes ADR-XXX）。*
+*ADR 第 1-7 號完成於 2026-04-27。ADR-008~013 於 2026-04-28~29 完成。ADR-014 於 2026-05-25 完成（策略層文件體系）。新 ADR 編號從 015 開始，**永遠 append，不修改既有 ADR**（如要修改，新 ADR 標註 Supersedes ADR-XXX）。*

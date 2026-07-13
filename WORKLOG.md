@@ -15,6 +15,8 @@ related:
 
 | Round | 主題 | 版本 |
 |---|---|---|
+| 27 ⭐ | 專案整體規劃建議書 v1.0（15 sections + 4 附錄、683 行、策略層 planning + 12 個月 roadmap + 執行原則）| — |
+| 26 | Research milestone：Padog 深度研究完成（padog-research repo）+ Bittle BiBoard v1.1 補強（bittle-research repo）+ 為 v0.7 多機器人擴展鋪路；DogLab 程式碼本身不動 | — |
 | 25 | 移除 2D SVG simulator + 預設 3D + 加尺寸切換（普通 ⇄ 放大）| v0.5.1 |
 | 24 ⭐ | P 任務：BittleApp → DogLabApp namespace 重構 + F 任務：5 個事件積木 + events dispatcher + 手動觸發 UI | v0.5.0 |
 | 23 | 運維：清理 git remote pushurl 統一為純 alias 風格 + 公司電腦 SSH 指引 + personal-playbook 雙 backup setup | — |
@@ -43,6 +45,121 @@ related:
 | 0 | 需求接收與規劃 | — |
 
 ⭐ = 重大里程碑
+
+---
+
+## ⭐ Round 27 — 2026-05-25 — 專案整體規劃建議書 v1.0（策略層 + 12 個月 roadmap）
+
+### 用戶需求
+> 「本專案，請聚焦於 4 足機器狗為主。請參考類似專案，找出適合本專案的資源，幫我完整檢視本專案，重新規劃原有專案，分析架構、目標與原本的運作模式，探索可行性以及還需要改進的地方，重新思考原有專案的架構與設計方向，並幫我提出整體規劃建議書及未來發展應用的方向與實行步驟的指引。並請將規劃的原因與策略列出，以便我未來修訂的時候可以參考或遵循原則。」
+
+### 交付
+新增 **`專案整體規劃建議書.md`**（683 行、31KB）於 repo 根目錄。
+
+### 建議書結構（15 sections + 4 附錄）
+
+| # | Section | 重點 |
+|---|---|---|
+| 一 | 執行摘要 | 現況 v0.5.1、核心價值 3 點、**建議方向 A「教學平台優先」**、12 個月摘要 |
+| 二 | 專案現況診斷 | ✅ 26 rounds 完成 / ⏳ v0.6-v1.0 未做 / 隱形資產 |
+| 三 | 目標與策略定位 | 三軸目標（技術 / 教學 / 社群）+ 策略 A/B/C 選擇邏輯 |
+| 四 | 架構深度分析 | 3 層架構圖 + 3 亮點（IRobot / metadata-driven / 純前端）+ 5 隱憂 |
+| 五 | 類似專案盤點 | 20+ 專案（4 類：積木引擎 / 四足機器狗 / 模擬環境 / 教學平台）|
+| 六 | 資源盤點 | 硬體 / 軟體 / 文件（跨 repo）/ 人力 |
+| 七 | 可行性評估 | 技術 ⭐⭐⭐⭐⭐ / 商業 ⭐⭐⭐ / 教育 ⭐⭐⭐⭐ / 維護 ⭐⭐⭐⭐ |
+| 八 | Gap 分析 | Quick win（Phase 1）+ 中期 + 長期 |
+| 九 | 架構重構建議 | 短 / 中 / 長期、保留 ADR-002 純前端精神 |
+| 十 | 三方向策略選擇 | A 教學平台 ⭐ / B 多機器人 / C AI 擴充 |
+| 十一 | 12 個月 Roadmap | Phase 1 / 2 / 3 逐週規劃 |
+| 十二 | 執行原則 | 5 類原則 + 修訂觸發條件 |
+| 十三 | 資源需求 | 時間 170-280 hr / 硬體優先度 / 外部依賴風險 |
+| 十四 | 風險評估 | 8 個風險 + 對應 mitigation |
+| 十五 | 收尾 + Next Steps | 立即可執行 + Phase 1 Week 1 動工 + 6/12 月 checkpoint |
+| 附錄 A | 新 ADR 提案 | ADR-014~021（8 個未來 ADR）|
+| 附錄 B | 類似專案深度對照 | 3 個對照表（教學平台 / 技術架構 / 硬體）|
+| 附錄 C | 實行步驟指引 SOP | 4 個 SOP（Phase 動工 / round 完成 / milestone / 本書修訂）|
+| 附錄 D | 姊妹筆記引用 | 8 份跨 repo 文件引用關係 |
+
+### 核心建議一句話
+
+推薦「方向 A 教學平台優先」→ Phase 1（0-3 月）localStorage + examples 一鍵載入起步、Phase 2（3-6 月）v0.7 Padog + 3 款教學卡、Phase 3（6-12 月）v1.0 完整 release 支援 4+ 機器人。
+
+### 對應決策
+ADR-014 專案整體規劃建議書體系（記錄「為何選 markdown / 為何 15 sections / 為何存 repo 根 / 修訂觸發原則」）— 詳見 DECISIONS.md。
+
+### 影響檔案
+| 檔案 | 動作 |
+|---|---|
+| `專案整體規劃建議書.md` | **新建（683 行）** |
+| `DECISIONS.md` | +ADR-014 |
+| `WORKLOG.md` | 本 Round |
+| `PRINCIPLES.md` | **新建**（從規劃書 §12 抽出、加專案級 coding principles）|
+
+### Commit
+`05c879f` — 專案整體規劃建議書 v1.0 已 commit + push origin + backup
+本 round R37 收工三文件 = 另一個 commit（WORKLOG + DECISIONS + PRINCIPLES）
+
+### 學到的經驗
+
+- **策略層文件（規劃書）跟決策層（ADR）分工**：規劃書談「12 個月方向」、ADR 談「單點決策」、WORKLOG 談「round 執行紀錄」— 三者不重疊、cross-ref 引用
+- **12.5 修訂觸發原則**是關鍵設計：讓建議書不會變 orphan doc、對齊「大版本升級 / 新機器人動工前 / 新方向決策 / 每 6 個月」四個觸發條件
+- **執行原則放建議書 §12** vs **PRINCIPLES.md**：建議書 §12 focus「架構決策 / 開發流程 / 教學設計 / 品牌授權 / 修訂觸發」5 類、PRINCIPLES.md focus 補「coding style + repo 結構 + 交付紀律」
+
+### 下一步（依規劃書 §十五）
+
+1. **審閱建議書** — 確認方向 A / B / C 選擇
+2. **決定 Phase 1 Week 1-2 起點** — localStorage 或 examples 一鍵載入
+3. **確認 Padog 實機採購時機** — 即刻 / v0.7 / 延到 v0.8
+4. **6 個月 checkpoint** — Phase 2 結束時 review 建議書
+
+### Commit message 建議（收工三文件）
+```
+docs(closing): R37 三文件收工 - Round 27 + ADR-014 + PRINCIPLES.md
+```
+
+---
+
+## Round 26 — 2026-05-04 — Research milestone（為 v0.7 鋪路）
+
+### 目標
+本 round 不動 DogLab 程式碼，純粹**為 v0.7 多機器人擴展做準備**：完成 Padog 深度研究 + 強化 Bittle 研究 + 把研究成果化為兩個 GitHub repo。
+
+### 產出（在外部 repo）
+
+| repo | 動作 | URL |
+|------|------|-----|
+| `padog-research`（**新建**）| 4 主筆記 + 21 raw 檔 + 含完整 prototype 架構草圖（PadogRobot.js + UART/HTTP adapter + 動作映射表）+ 雙 GitHub 備份 | https://github.com/seyen37/padog-research |
+| `bittle-research`（**新建**）| 5 主筆記 + 6 個 BiBoard v1.1 raw 檔 + 雙 GitHub 備份；既有 Petoi 研究（2026-04-27 完成）正式 repo 化 | https://github.com/seyen37/bittle-research |
+| `personal-playbook` | （前 round 已 push v1.1 含 §8.5 → 用戶後續 4-29 整合進新 §8.6）| — |
+
+### 對 DogLab Coding 的影響（純準備性）
+
+- **多機器人架構（ADR-006）有了第 2 個案例可驗證**：Padog 完整 prototype 設計 → 證明 IRobot 介面抽象的可重用性
+- **BiBoard v1.1 知識**：未來若用戶升級 Bittle X，DogLab 的 connector 層可能要新增 BiBoard 支援（但與 NyBoard 通訊協定相容）
+- **未來 v0.7 可直接動工**：所有研究 context 在 git 內，跨電腦 / 跨時間都能 pick up
+
+### 影響 DogLab 的未來 ADR
+
+當實際做 v0.7 時，會新增：
+- **ADR-014（待寫）**：採 IRobot 介面實作 Padog support（驗證 ADR-006）
+- **ADR-015（待寫）**：整合走 protocol layer，不 fork firmware（避 GPL 傳染）
+- **ADR-016（待寫）**：UART 為 MVP，HTTP 為 v0.8 fallback
+
+詳細設計見 [`padog-research/Padog_DogLab整合可行性評估.md`](https://github.com/seyen37/padog-research/blob/main/Padog_DogLab%E6%95%B4%E5%90%88%E5%8F%AF%E8%A1%8C%E6%80%A7%E8%A9%95%E4%BC%B0.md)。
+
+### 沒做的（給未來）
+
+- v0.6 IR 21 鍵虛擬遙控器（roadmap 已規劃）
+- v0.7 Padog 整合 prototype 實作（架構草圖已備）
+- 教學任務卡（NUWA 風格 5-10 題）
+- BiBoard 實機規格驗證（等收到 BiBoard 後 dump chip ID）
+
+### Commit message 建議
+
+本 round 沒有改 quadruped-koding 程式碼，只更新 WORKLOG。建議：
+```
+docs(worklog): add Round 26 research milestone (padog-research + bittle-research repos)
+```
 
 ---
 
